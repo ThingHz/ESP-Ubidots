@@ -66,8 +66,11 @@ unsigned long ConfigInterval = 20000;
 bool isConnected = true;
 bool isAPConnected = false;
 
-// Space to store values to send
-uint8_t data[] = {0x7E, 0x00, 0x19, 0x90, 0x00, 0x13, 0xA2, 0x00, 0x41, 0x5B, 0x75, 0xC3, 0xFF, 0xFE, 0xC2, 0x7F, 0x01, 0x01, 0x03, 0xAB, 0x01, 0x00, 0x01, 0x00, 0x56, 0x66, 0x67, 0x09, 0xCA };
+
+//*********ZigBee Frame**************/
+uint8_t data[29];
+int k = 10;
+int i;
 
 //*********Store Sensor Values**************/
 static float humidity; 
@@ -236,48 +239,44 @@ void taskSensorCallback(){
   Serial.print("timeout for this task: \t");
   Serial.println(tSensor.getTimeout());
   delay(10);
+    if (Serial1.available())
+  {
+    data[0] = Serial1.read();
+    delay(k);
     //chck for start byte
-   if(data[0]==0x7E)
+    if(data[0]==0x7E)
     {
-    if(data[15]==0x7F && data[22]==1)  /////// to check if the recive data is correct
+    while (!Serial1.available());
+    for ( i = 1; i< 29; i++)
       {
-  humidity = ((((data[24]) * 256) + data[25]) /100.0);
-  humidity /=10.0; 
-  cTempint = (((uint16_t)(data[26])<<8)| data[27]);
-  cTemp = (float)cTempint /100.0;
-  cTemp /= 10.0; 
-  fTemp = cTemp * 1.8 + 32;
-  fTemp /= 10.0;
-  battery = random(100,327); 
-  voltage = battery/100;
-  nodeId = data[16];
-  Serial.print("Sensor Number  ");
-  Serial.println(nodeId);
-  Serial.print("Sensor Type  ");
-  Serial.println(data[22]);
-  Serial.print("Firmware Version  ");
-  Serial.println(data[17]);
-  Serial.print("Relative Humidity :");
-  Serial.print(humidity);
-  Serial.println(" %RH");
-  Serial.print("Temperature in Celsius :");
-  Serial.print(cTemp);
-  Serial.println(" C");
-  Serial.print("Temperature in Fahrenheit :");
-  Serial.print(fTemp);
-  Serial.println(" F");
-  Serial.print("ADC value:");
-  Serial.println(battery);
-  Serial.print("Battery Voltage:");
-  Serial.print(voltage);
-  Serial.println("\n");
-  if (voltage < 1)
+      data[i] = Serial1.read();
+      delay(1);
+      }
+    if(data[15]==0x7F)  /////// to check if the recive data is correct
+      {
+  if(data[22]==1)  //////// make sure the sensor type is correct
+         {  
+            humidity = ((((data[24]) * 256) + data[25]) /100.0);
+            cTempint = (((uint16_t)(data[26])<<8)| data[27]);
+            cTemp = (float)cTempint /100.0;
+            fTemp = cTemp * 1.8 + 32;
+            fTemp /= 10.0;
+            nodeId = data[16];
+        Serial.print("Sensor Number  ");
+        Serial.println(nodeId);
+        Serial.print("Sensor Type  ");
+        Serial.println(data[22]);
+        Serial.print("Firmware Version  ");
+        Serial.println(data[17]);
+        Serial.println();
+        if (voltage < 1)
           {
-    Serial.println("Time to Replace The Battery");
+            Serial.println("Time to Replace The Battery");
           }
-   }
+        }
+      }
+    }
   }
-  voltage = (voltage/3.3)*100; 
  }
 
 
